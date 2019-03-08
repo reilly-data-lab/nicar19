@@ -1,0 +1,298 @@
+---
+title: "An Introduction to Statistics with R"
+author: "Steve Reilly, USA Today (sreilly@usatoday.com, @BySteveReilly)"
+date: "NICAR 2019, Newport Beach, CA"
+output: html_document
+---
+Goals of the session
+
+1. Introduction & workspace setup 
+2. Using R for descriptive and summary statistics
+3. Linear regression
+4. Multiple regression
+5. Basic visualization
+
+Data we will use
+
+1. Diamond prices (pre-loaded practice dataset)
+2. Massachusetts school test scores (pre-loaded practice dataset)
+3. California school test scores (pre-loaded practice dataset)
+4. NFL game TV ratings and 2016 presidential election results, 2016-2017 (USA Today analysis)
+
+## Load libraries
+```{r, message=FALSE}
+library("Ecdat")
+library("ggplot2")
+```
+
+## Dataset 1: Diamond Prices
+
+#### Load and explore data 
+```{r}
+data(Diamond)
+```
+```{r eval=FALSE}
+View(Diamond)
+?Diamond
+```
+
+We will use the `head` function to view the first five observations
+```{r}
+head(Diamond,5)
+```
+
+We can also use the `tail` function to view the observations at the end of the dataset 
+```{r}
+tail(Diamond)
+```
+
+The `names` function allows us to see the names of the variables in the dataset.
+```{r}
+names(Diamond)
+```
+
+The `str` function is a powerful way to examine the structure of a dataset. Here, we see the dataset has 220 observations of 17 variables. We can also see the format of each variable and the first few observations.
+```{r}
+str(Diamond)
+```
+
+The `structure` function breaks our numerical variables into quartiles and shows us the minimum, maximum, and mean. For the text variables, the output shows the number of observations for each category.
+```{r}
+summary(Diamond)
+```
+
+### Basic visualization with trendline
+Here, we use R's base graphics system to create a simple scatterplot and add a trendline.
+```{r pressure}
+plot(Diamond$carat, Diamond$price, main = "Diamond Carats vs. price", xlab = 'Carat', ylab = 'Price', pch = 21, bg = 'gold', ylim = c(0,16000))
+
+abline(lm(Diamond$price~Diamond$carat))
+```
+
+### Visualize with ggplot
+R's powerful ggplot library allows us to build a more detailed visualization.
+```{r}
+ggplot(Diamond,aes(x=carat,y=price))+ 
+  geom_point(colour="red",
+             alpha = 0.2,
+              size = 2) + 
+  geom_smooth(method="lm") +
+  labs(x= "Carat Size",
+         y = "Price ($)",
+         title = "Diamond Carats vs. price")
+```
+
+### Linear regresion analysis
+With two lines of code, we conduct a linear regression analysis. The dependent variable (or outcome, typically on Y axis) goes first, fillowed by a `~` and the independent variable (or predictor, typically on x axis).
+```{r}
+lm.out <- lm(Diamond$price~Diamond$carat)
+summary(lm.out)
+```
+#### Interpret the results
+
+* For every one-carat increase in the diamond, its value increases $11,598.90.
+* This model is statistically significant at the 99.9% confidence level (p value < 0.001). 
+* There is a statistically significant relationship between the number of number of carats and price of a diamond.
+* The adjusted R-squared is 0.89, meaning 89% of the variation in price is explained by carat.
+
+
+## Dataset 2: Massachusetts Test Results
+
+### Explore the data frame
+```{r}
+data(MCAS)
+```
+```{r eval=FALSE}
+?MCAS
+View(MCAS)
+```
+```{r}
+head(MCAS)
+tail(MCAS)
+names(MCAS)
+summary(MCAS) 
+str(MCAS)
+```
+
+### Visualize the data 
+
+#### Create a histogram.
+Is the data normally distributed? Let's look at a histogram to see.
+```{r pressure4}
+a <- ggplot(MCAS,aes(totsc4)) 
+a + geom_histogram(binwidth=10,color="black",fill="light blue") +
+  scale_x_continuous(breaks=seq(0,50,10))+
+  labs(x= "Fourth-grade test scores",
+         y = "Student-teacher ratio",
+         title = "Fourth-grade test scores and student-teacher ratio")
+```
+
+#### View scatterplot matrix
+The scatterplot matrix helps by showing us visually which variables may be related. Here, we are selecting columns 4, 11, 12, 13, 14, and 16 and creating a grid of scatterplots comparing each variable with the other five. Which variables look like they may be related?
+```{r pressure3}
+plot(MCAS[,c(4,11:14,16)])
+```
+
+
+#### View scatterplot
+It looks as though there may be a relationship between totsch4 (fourth-grade test score) and tchratio (student-teacher ratio). Let's take a closer look.
+```{r pressure5}
+ggplot(MCAS,aes(x=totsc4,y=tchratio))+ geom_point() + geom_smooth(method="lm") +
+labs(x= "Fourth-grade test scores",
+         y = "Student-teacher ratio",
+         title = "Fourth-grade test scores and student-teacher ratio")
+```
+
+### Regression analysis
+
+#### Bivariate regression: Test scores and student-teacher ratio
+Here, we run a linear regression model to examine relationship between fourth-grade test scores and student-teacher ratio.
+```{r}
+Model1 <-lm(MCAS$totsc4~MCAS$tchratio)
+summary(Model1)
+```
+#### Interpret the results
+
+* A one-unit increase in the student-teacher ratio in this model decreases the average test score by 1.5 points.
+* There is a statistically significant relationship between student-teacher ratio and test scores.
+* The 99% confidence level says that we are 99% confident that the true value of the parameters that we are interested in lies within our confidence interval.
+* The null hypothesis that the coefficient is zero can be rejected at the 1% significance level.
+* However, this model only explains 6 percent of the variation in test scores.
+
+### Linear regression: Test scores and student-teacher ratio+spending per pupil
+Let's examine another variable. Here, we run a linear regression model to examine the relationship between student-teacher ratio and fourth grade test scores.
+```{r}
+Model2 <-lm(MCAS$totsc4~MCAS$tchratio+MCAS$regday)
+summary(Model2)
+```
+#### Interpret the results
+
+* This model is also statistically significant, but still only explains about 6 percent of the variation in test scores.
+
+### Linear regression: Test scores and student-teacher ratio+spending per pupil+percent of students receiving free lunch
+We can also use R's `lm` function for multiple regression. Here, we examine the strength of the relationship between student-teacher ratio,  per-capita spending per student and percent of students receiving free on fourth-grade test scores.
+```{r}
+Model3 <-lm(MCAS$totsc4~MCAS$tchratio+MCAS$percap+MCAS$lnchpct)
+summary(Model3)
+```
+####Interpret the results
+
+* There is a statistically significant relationship between all variables included in this model and test scores.
+* Model 3 is a much better fit than Models 1 and 2. This model explains 67 percent of the variation in test scores.
+* In this model, a one-unit increase in student-teacher ratio decreases the average test score by 0.7 points after controlling per-capita income and students eligible for free/reduced lunch.
+
+## Example 3: California test results
+
+### Explore the data frame
+
+```{r}
+data(Caschool)
+```
+```{r eval=FALSE}
+View(Caschool)
+```
+```{r}
+names(Caschool)
+str(Caschool)
+summary(Caschool)
+head(Caschool)
+```
+
+### Visualize the data
+
+#### Visualize individual variables
+Another way to explore the data visually is to look histograms of individual variables. Let's examine at a few variables that may be of interest to us.
+```{r pressure7}
+hist(Caschool$testscr, main="Test Scores")
+hist(Caschool$avginc, main="Average Income")
+hist(Caschool$compstu, main="Computers Per Student")
+hist(Caschool$str, main="Student Teacher Ratio")
+```
+
+#### View scatterplot matrix
+```{r pressure6}
+plot(Caschool[,c(10,11,13,14)])
+```
+
+### Regression analysis 
+
+#### Linear regression: Test scores and student-teacher ratio
+Let's examine the relationship between test scores and student-teacher ratio.
+```{r}
+Model4 <-lm(Caschool$testscr~Caschool$str)
+summary(Model4)
+```
+#### Interpret the results
+
+* There is a statistically significant relationship between student-teacher ratio and test scores.
+* The null hypothesis that the coefficient is zero can be rejected at the 0.1% significance level.
+* However, this model only explains roughly 5 percent of the variation in test scores.
+* A one-unit increase in the student-teacher ratio in this model decreases the average test score by 2.3 points.
+
+### Multiple regression: Test scores and student-teacher ratio + computers-per-student
+Let's try and build a model which more closely predicts test scores by adding computers-per-student as a second predictor variable.
+```{r}
+Model5 <-lm(Caschool$testscr~Caschool$str+Caschool$compstu)
+summary(Model5)
+```
+##### Interpret the results
+
+* This model is becomes less statistically significant, and still only explains about 9 percent of the variation in test scores.
+* After controlling for computers-per-student, in this model a one-unit increase in student-teacher-ratio equals a 0.2 point decrease in test scores. 
+
+### Multiple regression analysis: Test scores and student-teacher ratio + computers-per-student + average income
+Let's try one more regression model adding average household income as a predictor variable.
+```{r}
+Model6 <- lm(Caschool$testscr~Caschool$str+Caschool$compstu+Caschool$avginc)
+summary(Model6)
+```
+#### Interpret the results
+
+* After controlling for both computers-per-student and average income, student-teacher ratio is no longer staistically significat at th 95 percent confidence level.
+* This does not mean there isn't a real-world relationship between student-teacher ratio and student test scores.
+* Importantly, note that this model still only accounts for 52% of the variation in student test scores. There must be omitted variables.
+* This analysis shows there is need for further inquiry. We do some reporting and analysis to find what other omitted variables need to be factored into the analysis.
+
+## 4. NFL TV Ratings and politics
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Ratings for NFL football are way down except before game starts, when people tune in to see whether or not our country will be disrespected!</p>&mdash; Donald J. Trump (@realDonaldTrump) <a href="https://twitter.com/realDonaldTrump/status/912624892239077376?ref_src=twsrc%5Etfw">September 26, 2017</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script> 
+
+#### Hypothesis test
+
+Null hypothesis: There is no stastically significant relationship between political support for President Trump and NFL ratings.
+
+Alternative hypothesis: There is a statistically significant relationship between political support for President Trump and NFL ratings.
+
+####Import data
+```{r}
+NFL.ratings <- read.csv("https://raw.githubusercontent.com/steve-reilly/nicar19/master/nfl_ratings.csv")
+```
+
+#### View summary statistics
+```{r eval=FALSE}
+View(NFL.ratings)
+```
+```{r}
+str(NFL.ratings)
+summary(NFL.ratings)
+```
+
+#### Visualize data
+
+```{r}
+ggplot(NFL.ratings,aes(y=NFL.ratings$ratings.change, x=NFL.ratings$trump.percent))+ geom_point() + geom_smooth(method="lm") + 
+  labs(x= "Percent of vote won by Trump (%)",
+       y = "Change in NFL ratings 2016-2017",
+       title = "Trump vote vs. change in NFL ratings")
+```
+
+### Linear regresion analysis: Ratings change vs. Trump Winner ###
+``` {r}
+lm.out <- lm(NFL.ratings$ratings.change~NFL.ratings$trump.percent)
+summary(lm.out)
+```
+#### Interpret the results
+
+* A one-percentage point increase in the percentage of a TV market which voted for President Trump is associated with a change of 6-unit decrease in the Sunday Night Football rating
+* However, the relationship between votes for Trump and is not statistically significant at the 95% percent confidence level, so we cannot reject the null hypothesis.
+* In this model, political support for President Trump explains only 8 percent of variation in Sunday Night Football TV rating changes.
